@@ -96,8 +96,8 @@ public class DanielDice : MonoBehaviour {
 		}
         else
         {
-			NewDice[0] = Operations(DieCols[0], OldDice[0], OldDice[1]);
-			NewDice[1] = Operations(DieCols[1], OldDice[1], OldDice[0]);
+			NewDice[0] = Operations(DieCols[0], OldDice[0], OldDice[1], true);
+			NewDice[1] = Operations(DieCols[1], OldDice[1], OldDice[0], true);
         }
 		DieCols[0] = Rnd.Range(0, 4);
 		DieCols[1] = Rnd.Range(0, 4);
@@ -105,7 +105,7 @@ public class DanielDice : MonoBehaviour {
 		StartCoroutine(Animate(Button));
     }
 
-	int Operations(int color, int a, int b)
+	int Operations(int color, int a, int b, bool log)
     {
 		int c = 0;
 		switch (color)
@@ -121,7 +121,8 @@ public class DanielDice : MonoBehaviour {
 				break;
 
 		}
-		Debug.Log("Color:" + color + " a=" + a + " b=" + b + " c=" + c);
+		if (log)
+			Debug.Log("Color:" + color + " a=" + a + " b=" + b + " c=" + c);
 		if (c == 0) c = 6;
 		return c;
     }
@@ -243,5 +244,90 @@ public class DanielDice : MonoBehaviour {
 			DanielTheDice(input);
 			yield return null;
 		}
+    }
+
+	//twitch plays
+	private bool firstGuess = true;
+	#pragma warning disable 414
+	private readonly string TwitchHelpMessage = @"!{0} higher/lower [Guesses higher or lower] | !{0} music [Toggles the music] | !{0} rdrts [Enables RDRTS (must be done before 1st guess and cannot be undone)]";
+	#pragma warning restore 414
+	IEnumerator ProcessTwitchCommand(string command)
+    {
+		if (command.ToLower().Equals("rdrts"))
+        {
+			if (RDRTS)
+            {
+				yield return "sendtochaterror RDRTS is already enabled!";
+				yield break;
+            }
+			if (!firstGuess)
+			{
+				yield return "sendtochaterror You have already guessed at least once!";
+				yield break;
+			}
+			yield return null;
+			RDRTS = true;
+			Text.text = "00/30";
+			DanielTheDice(0);
+			yield break;
+        }
+		if (command.ToLower().Equals("music"))
+        {
+			yield return null;
+			MuteButton.OnInteract();
+			yield break;
+		}
+		if (command.ToLower().Equals("higher"))
+		{
+			if (Stop)
+            {
+				yield return "sendtochaterror You cannot guess while a bet is being processed!";
+				yield break;
+            }
+			yield return null;
+			Buttons[0].OnInteract();
+			firstGuess = false;
+			yield return "solve";
+			yield return "strike";
+			yield break;
+		}
+		if (command.ToLower().Equals("lower"))
+		{
+			if (Stop)
+			{
+				yield return "sendtochaterror You cannot guess while a bet is being processed!";
+				yield break;
+			}
+			yield return null;
+			Buttons[1].OnInteract();
+			firstGuess = false;
+			yield return "solve";
+			yield return "strike";
+		}
+	}
+
+	IEnumerator TwitchHandleForcedSolve()
+    {
+		if (!RDRTS && badbad)
+        {
+			StopAllCoroutines();
+			Module.HandlePass();
+			solved = true;
+			yield break;
+        }
+		while (!solved)
+        {
+			if (!Stop && input == 0)
+            {
+				int newSum = Operations(DieCols[0], OldDice[0], OldDice[1], false) + Operations(DieCols[1], OldDice[1], OldDice[0], false);
+				if (!RDRTS && (OldSum > newSum || (OldSum == 2 && OldSum == newSum)))
+					Buttons[1].OnInteract();
+				else if (!RDRTS && (OldSum < newSum || (OldSum == 12 && OldSum == newSum)))
+					Buttons[0].OnInteract();
+				else
+					Buttons[Rnd.Range(0, 2)].OnInteract();
+			}
+			yield return true;
+        }
     }
 }
