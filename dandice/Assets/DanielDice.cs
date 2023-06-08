@@ -201,6 +201,7 @@ public class DanielDice : MonoBehaviour {
 		if (RDRTS)
 		{
 			Text.text = NumCorrect.ToString().PadLeft(2, '0') + "/30";
+			Debug.LogFormat("[Daniel Dice #{0}]: You are insane. RDRTS mode solved. Congrats. Please DM me!", _moduleId);
 			if (NumCorrect == 30) { Module.HandlePass(); solved = true; }
 
 		}
@@ -268,10 +269,12 @@ public class DanielDice : MonoBehaviour {
 			yield return null;
 			RDRTS = true;
 			Text.text = "00/30";
+			Dice[0].material = colorizer[0];
+			Dice[1].material = colorizer[0];
 			DanielTheDice(0);
 			yield break;
         }
-		if (command.ToLower().Equals("music"))
+		if (command.ToLower().Equals("music")||command.ToLower().Equals("mute"))
         {
 			yield return null;
 			MuteButton.OnInteract();
