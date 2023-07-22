@@ -30,7 +30,7 @@ public class DanielDice : MonoBehaviour {
 	private int[] DieCols = new int[2];
 	private int OldSum, NewSum, MusicLocation, input;
 	private int[] MusicNums = { 1, 2, 1, 2, 3, 4, 3, 5 };
-	private bool Stop, badbad;
+	private bool Stop, badbad, intro;
 
 	void Awake()
     {
@@ -96,14 +96,17 @@ public class DanielDice : MonoBehaviour {
 		}
         else
         {
-			NewDice[0] = Operations(DieCols[0], OldDice[0], OldDice[1], true);
-			NewDice[1] = Operations(DieCols[1], OldDice[1], OldDice[0], true);
+			if (!intro)
+			{
+				NewDice[0] = Operations(DieCols[0], OldDice[0], OldDice[1], true);
+				NewDice[1] = Operations(DieCols[1], OldDice[1], OldDice[0], true);
+			}
         }
 		DieCols[0] = Rnd.Range(0, 4);
 		DieCols[1] = Rnd.Range(0, 4);
 		NewSum = NewDice.Sum();
 		StartCoroutine(Animate(Button));
-    }
+	}
 
 	int Operations(int color, int a, int b, bool log)
     {
@@ -130,7 +133,7 @@ public class DanielDice : MonoBehaviour {
 	{
 		Stop = true;
 		input = 0;
-		if (OldSum == NewSum || (Button == 1 && OldSum < NewSum) || (Button == -1 && OldSum > NewSum))
+		if ((OldSum == NewSum || (Button == 1 && OldSum < NewSum) || (Button == -1 && OldSum > NewSum)) && !intro)
 		{
 			if(!ShutUp) Audio.PlaySoundAtTransform("DanDice_Win", Module.transform);
 			if (OldSum != NewSum || (OldSum == 12 && Button == 1) || (OldSum == 2 && Button == -1))
@@ -164,11 +167,12 @@ public class DanielDice : MonoBehaviour {
 				Debug.LogFormat("[Daniel Dice #{0}]: Tie... no points.", _moduleId);
 
 		}
-		else if ((Button == 1 && OldSum > NewSum) || (Button == -1 && OldSum < NewSum))
+		else if (((Button == 1 && OldSum > NewSum) || (Button == -1 && OldSum < NewSum)) && !intro)
 		{
 			if(!ShutUp) Audio.PlaySoundAtTransform("DanDice_Loss", Module.transform);
 			Debug.LogFormat("[Daniel Dice #{0}]: Oof. You picked {1}, and I rolled {2}, compared to {3}.", _moduleId, Button == 1 ? "Higher" : "Lower", NewSum, OldSum);
 			badbad = true;
+			intro = true;
 		}
 		yield return new WaitForSecondsRealtime(2f * Beat);
 		Audio.PlaySoundAtTransform("diceshake", Module.transform);
@@ -190,6 +194,8 @@ public class DanielDice : MonoBehaviour {
 		OldDice[0] = NewDice[0];
 		OldDice[1] = NewDice[1];
 		OldSum = NewSum;
+		intro = false;
+
 		if (badbad)
         {
 			if(!RDRTS) Module.HandleStrike();
@@ -201,10 +207,10 @@ public class DanielDice : MonoBehaviour {
 		if (RDRTS)
 		{
 			Text.text = NumCorrect.ToString().PadLeft(2, '0') + "/30";
-			Debug.LogFormat("[Daniel Dice #{0}]: You are insane. RDRTS mode solved. Congrats. Please DM me!", _moduleId);
-			if (NumCorrect == 30) { Module.HandlePass(); solved = true; }
 
-		}
+			if (NumCorrect == 30) { Module.HandlePass(); solved = true; Debug.LogFormat("[Daniel Dice #{0}]: You are insane. RDRTS mode solved. Congrats. Please DM me!", _moduleId); }
+
+			}
 		else { Text.text = NumCorrect.ToString() + " / 5"; if (NumCorrect == 5) { Module.HandlePass(); solved = true; } }
 		Stop = false;
     }
@@ -213,6 +219,8 @@ public class DanielDice : MonoBehaviour {
     {
 		yield return null;
 		StartCoroutine(MusicLoop());
+		intro = true;
+		input = 0;
 		if(!ShutUp) Audio.PlaySoundAtTransform("DanDice_D", Module.transform);
 		DanielTheDice(0);
 	}
